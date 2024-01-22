@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function find_all(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sort_column(elem) {
+    toggle_sort_states(elem);
+    var colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    var key;
+    if (elem.classList.contains('numeric')) {
+        key = key_num;
+    } else if (elem.classList.contains('result')) {
+        key = key_result;
+    } else {
+        key = key_alpha;
+    }
+    sort_table(elem, key(colIndex));
+}
+
+function show_all_extras() {
+    find_all('.col-result').forEach(show_extras);
+}
+
+function hide_all_extras() {
+    find_all('.col-result').forEach(hide_extras);
+}
+
+function show_extras(colresult_elem) {
+    var extras = colresult_elem.parentNode.nextElementSibling;
+    var expandcollapse = colresult_elem.firstElementChild;
+    extras.classList.remove("collapsed");
+    expandcollapse.classList.remove("expander");
+    expandcollapse.classList.add("collapser");
+}
+
+function hide_extras(colresult_elem) {
+    var extras = colresult_elem.parentNode.nextElementSibling;
+    var expandcollapse = colresult_elem.firstElementChild;
+    extras.classList.add("collapsed");
+    expandcollapse.classList.remove("collapser");
+    expandcollapse.classList.add("expander");
+}
+
+function show_filters() {
+    var filter_items = document.getElementsByClassName('filter');
+    for (var i = 0; i < filter_items.length; i++)
+        filter_items[i].hidden = false;
+}
+
+function add_collapse() {
+    // Add links for show/hide all
+    var resulttable = find('table#results-table');
+    var showhideall = document.createElement("p");
+    showhideall.innerHTML = '<a href="javascript:show_all_extras()">Show all details</a> / ' +
+                            '<a href="javascript:hide_all_extras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    find_all('.col-result').forEach(function(elem) {
+        var collapsed = get_query_parameter('collapsed') || 'Passed';
+        var extras = elem.parentNode.nextElementSibling;
+        var expandcollapse = document.createElement("span");
+        if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add("collapsed");
+            expandcollapse.classList.add("expander");
+        } else {
+            expandcollapse.classList.add("collapser");
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener("click", function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains("collapsed")) {
+                show_extras(event.currentTarget);
+            } else {
+                hide_extras(event.currentTarget);
+            }
+        });
+    })
+}
+
+function get_query_parameter(name) {
+    var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () {
+    reset_sort_headers();
+
+    add_collapse();
+
+    show_filters();
+
+    sort_column(find('.initial-sort'));
+
+    find_all('.sortable').forEach(function(elem) {
+        elem.addEventListener("click",
+                              function(event) {
+                                  sort_column(elem);
+                              }, false)
+    });
+
+};
+
+function sort_table(clicked, key_func) {
+    var rows = find_all('.results-table-row');
+    var reversed = !clicked.classList.contains('asc');
+    var sorted_rows = sort(rows, key_func, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    var thead = document.getElementById("results-table-head");
+    document.getElementById('results-table').remove();
+    var parent = document.createElement("table");
+    parent.id = "results-table";
+    parent.appendChild(thead);
+    sorted_rows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName("BODY")[0].appendChild(parent);
+}
+
+function sort(items, key_func, reversed) {
+    var sort_array = items.map(function(item, i) {
+        return [key_func(item), i];
+    });
+
+    sort_array.sort(function(a, b) {
+        var key_a = a[0];
+        var key_b = b[0];
+
+        if (key_a == key_b) return 0;
+
+        if (reversed) {
+            return (key_a < key_b ? 1 : -1);
+        } else {
+            return (key_a > key_b ? 1 : -1);
+        }
+    });
+
+    return sort_array.map(function(item) {
+        var index = item[1];
+        return items[index];
+    });
+}
+
+function key_alpha(col_index) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[col_index].firstChild.data.toLowerCase();
+    };
+}
+
+function key_num(col_index) {
+    return function(elem) {
+        return parseFloat(elem.childNodes[1].childNodes[col_index].firstChild.data);
+    };
+}
+
+function key_result(col_index) {
+    return function(elem) {
+        var strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+                       'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[col_index].firstChild.data);
+    };
+}
+
+function reset_sort_headers() {
+    find_all('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    find_all('.sortable').forEach(function(elem) {
+        var icon = document.createElement("div");
+        icon.className = "sort-icon";
+        icon.textContent = "vvv";
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove("desc", "active");
+        elem.classList.add("asc", "inactive");
+    });
+}
+
+function toggle_sort_states(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        reset_sort_headers();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function is_all_rows_hidden(value) {
+  return value.hidden == false;
+}
+
+function filter_table(elem) {
+    var outcome_att = "data-test-result";
+    var outcome = elem.getAttribute(outcome_att);
+    class_outcome = outcome + " results-table-row";
+    var outcome_rows = document.getElementsByClassName(class_outcome);
+
+    for(var i = 0; i < outcome_rows.length; i++){
+        outcome_rows[i].hidden = !elem.checked;
+    }
+
+    var rows = find_all('.results-table-row').filter(is_all_rows_hidden);
+    var all_rows_hidden = rows.length == 0 ? true : false;
+    var not_found_message = document.getElementById("not-found-message");
+    not_found_message.hidden = !all_rows_hidden;
+}
+</script>
+    <h1>report.html</h1>
+    <p>Report generated on 22-Jan-2024 at 07:56:45 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v2.0.1</p>
+    <h2>Summary</h2>
+    <p>4 tests ran in 87.55 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="passed">4 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>, <input checked="true" class="filter" data-test-result="rerun" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="rerun">0 rerun</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable numeric" col="duration">Duration</th>
+          <th>Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test/test_home.py::HomeTest::test_login</td>
+          <td class="col-duration">20.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>RUNNING BEFORE EACH TEST
+checklogin_data:  {&#x27;status&#x27;: 200, &#x27;message&#x27;: &#x27;success&#x27;, &#x27;errorCode&#x27;: &#x27;AUT_CLT_000&#x27;, &#x27;data&#x27;: {&#x27;userID&#x27;: &#x27;fb44d973-cbb6-49cc-bba6-1b3ecd7babfb&#x27;, &#x27;preferredLoginMethod&#x27;: &#x27;password&#x27;, &#x27;availableLoginMethod&#x27;: [&#x27;password&#x27;]}}
+checklogin_data:  {&#x27;status&#x27;: 200, &#x27;message&#x27;: &#x27;success&#x27;, &#x27;errorCode&#x27;: &#x27;AUT_LGN_000&#x27;, &#x27;data&#x27;: {&#x27;accessToken&#x27;: &#x27;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYjQ0ZDk3My1jYmI2LTQ5Y2MtYmJhNi0xYjNlY2Q3YmFiZmIiLCJqdGkiOiJkYWEwMDdkNy05Nzg1LTQwOWYtOTBmOS00MGZiNTNiMDEwYzAiLCJpc3MiOiJBT1AiLCJleHAiOjE3MDU4ODg1MzMsImlhdCI6MTcwNTg4NDkzMywibmJmIjoxNzA1ODg0OTMzLCJzZXNzaW9uSUQiOiI0ZTJlOTZiMS1iNGM0LTRlNzMtODcyNC0wMzlkMTUzZjQ1MDEiLCJ0eXBlIjoiYWNjZXNzIiwicm9sZSI6ImN1c3RvbWVyIiwicm9sZXMiOlt7InJvbGVfbmFtZSI6ImN1c3RvbWVyIn1dLCJjdXNJRCI6IjRmZDJhZDRlLTFhNDctNDQzOS05ZjdlLWU2ZGY1ZmI5NjcwNiIsInVzZXJfaW5mbyI6eyJlbWFpbCI6bnVsbH19.HeBSJx8btXQ9-ipeNwI64PdIEbsu2S0dopunT4L9Qh4&#x27;, &#x27;refreshToken&#x27;: &#x27;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYjQ0ZDk3My1jYmI2LTQ5Y2MtYmJhNi0xYjNlY2Q3YmFiZmIiLCJqdGkiOiJlYzZkMDc1OS1kMmE0LTRhNjUtYmY4ZS0xYzkzYTFmMWFjODIiLCJpc3MiOiJBT1AiLCJleHAiOjE3MzcxODQ0MDEsImlhdCI6MTcwNTU2MjAwMSwibmJmIjoxNzA1NTYyMDAxLCJ0eXBlIjoicmVmcmVzaCIsInJvbGUiOiJjdXN0b21lciIsInJvbGVzIjpbeyJyb2xlX25hbWUiOiJjdXN0b21lciJ9XSwiY3VzSUQiOiI0ZmQyYWQ0ZS0xYTQ3LTQ0MzktOWY3ZS1lNmRmNWZiOTY3MDYiLCJ1c2VyX2luZm8iOnsiZW1haWwiOm51bGx9fQ.e5GHxQZPe8R4hdLyhDKBAn6P6h5a5VwSHSbvQnB7Fh0&#x27;, &#x27;isPhoneVerified&#x27;: True, &#x27;userID&#x27;: &#x27;fb44d973-cbb6-49cc-bba6-1b3ecd7babfb&#x27;, &#x27;expiredAccessToken&#x27;: 1705888533, &#x27;expiredRefreshToken&#x27;: 1737507333}}
+RUNNING AFTER EACH TEST
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test/test_home.py::HomeTest::test_register</td>
+          <td class="col-duration">18.70</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>RUNNING BEFORE EACH TEST
+RUNNING AFTER EACH TEST
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test/test_product.py::ProductTest::test_product</td>
+          <td class="col-duration">20.72</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>RUNNING BEFORE EACH TEST
+label_produk:  Produk (Gratis Ongkir + Kupon Diskon + Cashback)
+soup:  &lt;div class=&quot;sc-1sdj1hu-0 ePucrc&quot;&gt;&lt;div class=&quot;sc-1sdj1hu-1 bIHNeP scroll-container indiana-scroll-container&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/oli-motor-matic-aspira-10w30&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;Oli Aspira Motor Matic 10W-30 0.8 Liter - Honda Matic, Yamaha Matic, Suzuki Matic&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/10/11/processed_7c025b01-69a4-453e-a03d-fd6428f2d874+10w30.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;Oli Aspira Motor Matic 10W-30 0.8 Liter - Honda Matic, Yamaha Matic, Suzuki Matic&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;5%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp45.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp42.750&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/aki-gs-astra-mf-ns40z-untuk-mobil-daihatsu-neo-zebra-feroza-taruna-espass-suzuki-apv-ge-gl-gx-sgx-luxury-sidekick-escudo-vitara-esteem-mitsubishi-maven-mazda-mr-90-hyundai-atoz&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;AKI GS ASTRA MF NS40Z untuk mobil Daihatsu Neo Zebra, Feroza, Taruna, Espass, Suzuki APV (GE/GL/GX/SGX/Luxury), Sidekick, Escudo, Vitara, Esteem, Mitsubishi Maven, Mazda MR 90, Hyundai Atoz&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/10/09/processed_b69d9acb-f975-41fc-8528-790369ba6750+gs+mf+produk.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;AKI GS ASTRA MF NS40Z untuk mobil Daihatsu Neo Zebra, Feroza, Taruna, Espass, Suzuki APV (GE/GL/GX/SGX/Luxury), Sidekick, Escudo, Vitara, Esteem, Mitsubishi Maven, Mazda MR 90, Hyundai Atoz&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;6%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp993.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp933.420&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/aki-gs-astra-hybrid-ns40-untuk-mobil-toyota-avanza-rush-daihatsu-xenia-terios-mitsubishi-outlander-mirage&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;AKI GS ASTRA Hybrid NS40 untuk mobil Toyota Avanza, Rush, Daihatsu Xenia, Terios, Mitsubishi Outlander, Mirage,&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/10/04/processed_409b0af4-1793-4152-b661-868b95d09695+hy+min.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;AKI GS ASTRA Hybrid NS40 untuk mobil Toyota Avanza, Rush, Daihatsu Xenia, Terios, Mitsubishi Outlander, Mirage,&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;2%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp737.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp722.260&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/aki-motor-gs-astra-mf-gtz-5s&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;Aki Motor GS ASTRA MF GTZ-5S - Motor Honda Vario, Honda Beat, Honda Scoopy, Honda Revo, Honda Supra X 125, Yamaha Mio, Yamaha Vixion&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/10/03/43c80380-7da3-4940-b180-c8d6b8456844+gtz5s.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;Aki Motor GS ASTRA MF GTZ-5S - Motor Honda Vario, Honda Beat, Honda Scoopy, Honda Revo, Honda Supra X 125, Yamaha Mio, Yamaha Vixion&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;3%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp251.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp243.470&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;span class=&quot;sc-rq82e3-0 ijZWUs&quot; height=&quot;12&quot;&gt;&lt;svg fill=&quot;none&quot; height=&quot;12&quot; viewbox=&quot;0 0 12 12&quot; width=&quot;12&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+&lt;path d=&quot;M5.23196 0.557491C5.47408 -0.18583 6.52571 -0.18583 6.76703 0.557491L7.63061 3.2144C7.68337 3.37621 7.78593 3.5172 7.92363 3.61722C8.06134 3.71724 8.22714 3.77116 8.39733 3.77129H11.1914C11.9735 3.77129 12.298 4.77207 11.666 5.23211L9.40618 6.87371C9.2682 6.97381 9.16545 7.11504 9.11268 7.27713C9.0599 7.43923 9.05981 7.61387 9.11241 7.77603L9.97598 10.4329C10.2181 11.1763 9.36664 11.7953 8.73308 11.3353L6.47325 9.69365C6.33541 9.59358 6.16943 9.53968 5.99909 9.53968C5.82875 9.53968 5.66277 9.59358 5.52493 9.69365L3.2651 11.3353C2.63235 11.7953 1.78169 11.1763 2.023 10.4329L2.88658 7.77603C2.93918 7.61387 2.93909 7.43923 2.88631 7.27713C2.83354 7.11504 2.73079 6.97381 2.5928 6.87371L0.333783 5.23291C-0.298162 4.77288 0.0270921 3.7721 0.808347 3.7721H3.60166C3.77199 3.77214 3.93797 3.71829 4.07583 3.61827C4.2137 3.51824 4.31639 3.37715 4.36919 3.21521L5.23277 0.558298L5.23196 0.557491Z&quot; fill=&quot;#FEDB00&quot;&gt;&lt;/path&gt;
+&lt;/svg&gt;
+&lt;/span&gt;&lt;span class=&quot;sc-w647qe-0 zCVmv&quot; font-size=&quot;8&quot; font-weight=&quot;bold&quot;&gt;5&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/oli-motor-matic-shell-advance-ax5-10w30&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;Oli Motor Matic Shell Advance AX5SC 10W30 0.8 L&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/10/11/processed_9bdb6e05-55dc-4bd8-b629-f859e2052556+10w30+shell+helix.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;Oli Motor Matic Shell Advance AX5SC 10W30 0.8 L&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;10%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp46.500&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp41.850&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;span class=&quot;sc-rq82e3-0 ijZWUs&quot; height=&quot;12&quot;&gt;&lt;svg fill=&quot;none&quot; height=&quot;12&quot; viewbox=&quot;0 0 12 12&quot; width=&quot;12&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+&lt;path d=&quot;M5.23196 0.557491C5.47408 -0.18583 6.52571 -0.18583 6.76703 0.557491L7.63061 3.2144C7.68337 3.37621 7.78593 3.5172 7.92363 3.61722C8.06134 3.71724 8.22714 3.77116 8.39733 3.77129H11.1914C11.9735 3.77129 12.298 4.77207 11.666 5.23211L9.40618 6.87371C9.2682 6.97381 9.16545 7.11504 9.11268 7.27713C9.0599 7.43923 9.05981 7.61387 9.11241 7.77603L9.97598 10.4329C10.2181 11.1763 9.36664 11.7953 8.73308 11.3353L6.47325 9.69365C6.33541 9.59358 6.16943 9.53968 5.99909 9.53968C5.82875 9.53968 5.66277 9.59358 5.52493 9.69365L3.2651 11.3353C2.63235 11.7953 1.78169 11.1763 2.023 10.4329L2.88658 7.77603C2.93918 7.61387 2.93909 7.43923 2.88631 7.27713C2.83354 7.11504 2.73079 6.97381 2.5928 6.87371L0.333783 5.23291C-0.298162 4.77288 0.0270921 3.7721 0.808347 3.7721H3.60166C3.77199 3.77214 3.93797 3.71829 4.07583 3.61827C4.2137 3.51824 4.31639 3.37715 4.36919 3.21521L5.23277 0.558298L5.23196 0.557491Z&quot; fill=&quot;#FEDB00&quot;&gt;&lt;/path&gt;
+&lt;/svg&gt;
+&lt;/span&gt;&lt;span class=&quot;sc-w647qe-0 zCVmv&quot; font-size=&quot;8&quot; font-weight=&quot;bold&quot;&gt;5&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+teks:  Oli Aspira Motor Matic 10W-30 0.8 Liter - Honda Matic, Yamaha Matic, Suzuki Matic5%Rp45.000Rp42.750Stok tersedia
+test:  Barang telah ditambahkan ke keranjang belanja
+notif:  True
+RUNNING AFTER EACH TEST
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test/test_product.py::ProductTest::test_product_voucher_pemasangan</td>
+          <td class="col-duration">27.94</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>RUNNING BEFORE EACH TEST
+label_produk:  Voucher Pemasangan + Cashback + Garansi (Aki) Shop &amp; Drive
+soup:  &lt;div class=&quot;sc-1sdj1hu-1 bIHNeP scroll-container indiana-scroll-container&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/voucher-astra-shell-oil-5w30-4-ltr-pemasangan-oli-untuk-mobil-bensin-22&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;Voucher Astra Shell Oil 5W30 4 Ltr + Pemasangan (Oli untuk Mobil Bensin)&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/10/18/processed_cc87d34c-8d45-4250-9f78-b137491de21b+5w30.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;Voucher Astra Shell Oil 5W30 4 Ltr + Pemasangan (Oli untuk Mobil Bensin)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;50%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp832.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp416.000&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;span class=&quot;sc-rq82e3-0 ijZWUs&quot; height=&quot;12&quot;&gt;&lt;svg fill=&quot;none&quot; height=&quot;12&quot; viewbox=&quot;0 0 12 12&quot; width=&quot;12&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+&lt;path d=&quot;M5.23196 0.557491C5.47408 -0.18583 6.52571 -0.18583 6.76703 0.557491L7.63061 3.2144C7.68337 3.37621 7.78593 3.5172 7.92363 3.61722C8.06134 3.71724 8.22714 3.77116 8.39733 3.77129H11.1914C11.9735 3.77129 12.298 4.77207 11.666 5.23211L9.40618 6.87371C9.2682 6.97381 9.16545 7.11504 9.11268 7.27713C9.0599 7.43923 9.05981 7.61387 9.11241 7.77603L9.97598 10.4329C10.2181 11.1763 9.36664 11.7953 8.73308 11.3353L6.47325 9.69365C6.33541 9.59358 6.16943 9.53968 5.99909 9.53968C5.82875 9.53968 5.66277 9.59358 5.52493 9.69365L3.2651 11.3353C2.63235 11.7953 1.78169 11.1763 2.023 10.4329L2.88658 7.77603C2.93918 7.61387 2.93909 7.43923 2.88631 7.27713C2.83354 7.11504 2.73079 6.97381 2.5928 6.87371L0.333783 5.23291C-0.298162 4.77288 0.0270921 3.7721 0.808347 3.7721H3.60166C3.77199 3.77214 3.93797 3.71829 4.07583 3.61827C4.2137 3.51824 4.31639 3.37715 4.36919 3.21521L5.23277 0.558298L5.23196 0.557491Z&quot; fill=&quot;#FEDB00&quot;&gt;&lt;/path&gt;
+&lt;/svg&gt;
+&lt;/span&gt;&lt;span class=&quot;sc-w647qe-0 zCVmv&quot; font-size=&quot;8&quot; font-weight=&quot;bold&quot;&gt;5&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/voucher-shell-helix-astra-oil-0w20-sn-4-ltr-pemasangan-oli-untuk-mobil-bensin2&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;Voucher Shell Helix Astra Oil 0W20 SN+4 Ltr+Pemasangan (Oli untuk Mobil Bensin)&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/10/23/processed_7c92468d-0056-4be4-94d5-bcc8ed94de92+sd+550053254.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;Voucher Shell Helix Astra Oil 0W20 SN+4 Ltr+Pemasangan (Oli untuk Mobil Bensin)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;48%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp1.050.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp550.000&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;span class=&quot;sc-rq82e3-0 ijZWUs&quot; height=&quot;12&quot;&gt;&lt;svg fill=&quot;none&quot; height=&quot;12&quot; viewbox=&quot;0 0 12 12&quot; width=&quot;12&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+&lt;path d=&quot;M5.23196 0.557491C5.47408 -0.18583 6.52571 -0.18583 6.76703 0.557491L7.63061 3.2144C7.68337 3.37621 7.78593 3.5172 7.92363 3.61722C8.06134 3.71724 8.22714 3.77116 8.39733 3.77129H11.1914C11.9735 3.77129 12.298 4.77207 11.666 5.23211L9.40618 6.87371C9.2682 6.97381 9.16545 7.11504 9.11268 7.27713C9.0599 7.43923 9.05981 7.61387 9.11241 7.77603L9.97598 10.4329C10.2181 11.1763 9.36664 11.7953 8.73308 11.3353L6.47325 9.69365C6.33541 9.59358 6.16943 9.53968 5.99909 9.53968C5.82875 9.53968 5.66277 9.59358 5.52493 9.69365L3.2651 11.3353C2.63235 11.7953 1.78169 11.1763 2.023 10.4329L2.88658 7.77603C2.93918 7.61387 2.93909 7.43923 2.88631 7.27713C2.83354 7.11504 2.73079 6.97381 2.5928 6.87371L0.333783 5.23291C-0.298162 4.77288 0.0270921 3.7721 0.808347 3.7721H3.60166C3.77199 3.77214 3.93797 3.71829 4.07583 3.61827C4.2137 3.51824 4.31639 3.37715 4.36919 3.21521L5.23277 0.558298L5.23196 0.557491Z&quot; fill=&quot;#FEDB00&quot;&gt;&lt;/path&gt;
+&lt;/svg&gt;
+&lt;/span&gt;&lt;span class=&quot;sc-w647qe-0 zCVmv&quot; font-size=&quot;8&quot; font-weight=&quot;bold&quot;&gt;5&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/voucher-shell-helix-astra-oil-10w30-4-ltr-pemasangan-oli-untuk-mobil-bensin&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;Voucher Shell Helix Astra Oil 10W30 4 Ltr + Pemasangan (Oli untuk Mobil Bensin)&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/10/18/processed_edab0054-bf8d-4946-b718-dae04c53be7f+10w30.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;Voucher Shell Helix Astra Oil 10W30 4 Ltr + Pemasangan (Oli untuk Mobil Bensin)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;50%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp628.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp314.000&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;span class=&quot;sc-rq82e3-0 ijZWUs&quot; height=&quot;12&quot;&gt;&lt;svg fill=&quot;none&quot; height=&quot;12&quot; viewbox=&quot;0 0 12 12&quot; width=&quot;12&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+&lt;path d=&quot;M5.23196 0.557491C5.47408 -0.18583 6.52571 -0.18583 6.76703 0.557491L7.63061 3.2144C7.68337 3.37621 7.78593 3.5172 7.92363 3.61722C8.06134 3.71724 8.22714 3.77116 8.39733 3.77129H11.1914C11.9735 3.77129 12.298 4.77207 11.666 5.23211L9.40618 6.87371C9.2682 6.97381 9.16545 7.11504 9.11268 7.27713C9.0599 7.43923 9.05981 7.61387 9.11241 7.77603L9.97598 10.4329C10.2181 11.1763 9.36664 11.7953 8.73308 11.3353L6.47325 9.69365C6.33541 9.59358 6.16943 9.53968 5.99909 9.53968C5.82875 9.53968 5.66277 9.59358 5.52493 9.69365L3.2651 11.3353C2.63235 11.7953 1.78169 11.1763 2.023 10.4329L2.88658 7.77603C2.93918 7.61387 2.93909 7.43923 2.88631 7.27713C2.83354 7.11504 2.73079 6.97381 2.5928 6.87371L0.333783 5.23291C-0.298162 4.77288 0.0270921 3.7721 0.808347 3.7721H3.60166C3.77199 3.77214 3.93797 3.71829 4.07583 3.61827C4.2137 3.51824 4.31639 3.37715 4.36919 3.21521L5.23277 0.558298L5.23196 0.557491Z&quot; fill=&quot;#FEDB00&quot;&gt;&lt;/path&gt;
+&lt;/svg&gt;
+&lt;/span&gt;&lt;span class=&quot;sc-w647qe-0 zCVmv&quot; font-size=&quot;8&quot; font-weight=&quot;bold&quot;&gt;5&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/trade-in-voucher-aki-gs-astra-mf-ns60ls-pasang-untuk-yaris-vios-crv-civic-accord-dll-1&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;[TRADE IN] Voucher Aki mobil GS ASTRA MF NS60LS + Pasang untuk Yaris, Vios, CRV, Civic, Accord, dll&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/09/25/processed_bb805603-fd17-407e-b487-5b59e0f13bc7+mf+snd.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;[TRADE IN] Voucher Aki mobil GS ASTRA MF NS60LS + Pasang untuk Yaris, Vios, CRV, Civic, Accord, dll&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;11%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp1.081.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp967.000&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;span class=&quot;sc-rq82e3-0 ijZWUs&quot; height=&quot;12&quot;&gt;&lt;svg fill=&quot;none&quot; height=&quot;12&quot; viewbox=&quot;0 0 12 12&quot; width=&quot;12&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+&lt;path d=&quot;M5.23196 0.557491C5.47408 -0.18583 6.52571 -0.18583 6.76703 0.557491L7.63061 3.2144C7.68337 3.37621 7.78593 3.5172 7.92363 3.61722C8.06134 3.71724 8.22714 3.77116 8.39733 3.77129H11.1914C11.9735 3.77129 12.298 4.77207 11.666 5.23211L9.40618 6.87371C9.2682 6.97381 9.16545 7.11504 9.11268 7.27713C9.0599 7.43923 9.05981 7.61387 9.11241 7.77603L9.97598 10.4329C10.2181 11.1763 9.36664 11.7953 8.73308 11.3353L6.47325 9.69365C6.33541 9.59358 6.16943 9.53968 5.99909 9.53968C5.82875 9.53968 5.66277 9.59358 5.52493 9.69365L3.2651 11.3353C2.63235 11.7953 1.78169 11.1763 2.023 10.4329L2.88658 7.77603C2.93918 7.61387 2.93909 7.43923 2.88631 7.27713C2.83354 7.11504 2.73079 6.97381 2.5928 6.87371L0.333783 5.23291C-0.298162 4.77288 0.0270921 3.7721 0.808347 3.7721H3.60166C3.77199 3.77214 3.93797 3.71829 4.07583 3.61827C4.2137 3.51824 4.31639 3.37715 4.36919 3.21521L5.23277 0.558298L5.23196 0.557491Z&quot; fill=&quot;#FEDB00&quot;&gt;&lt;/path&gt;
+&lt;/svg&gt;
+&lt;/span&gt;&lt;span class=&quot;sc-w647qe-0 zCVmv&quot; font-size=&quot;8&quot; font-weight=&quot;bold&quot;&gt;5&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 lkwwJy sc-dfsrp1-1 enSKxv&quot;&gt;&lt;a href=&quot;/product/trade-in-voucher-aki-gs-astra-hybrid-ns40z-pasang-untuk-avanza-xenia-apv-taruna-esteem-splash-dll-aki-standar-1&quot;&gt;&lt;div class=&quot;sc-dfsrp1-16 aUZEl&quot;&gt;&lt;img alt=&quot;[TRADE IN] Voucher Aki mobil GS ASTRA Hybrid NS40Z + Pasang untuk Avanza, Xenia, APV, Taruna, Esteem, Splash, dll (aki standar)&quot; class=&quot;sc-dfsrp1-18 cyyjje&quot; src=&quot;https://astraotoshop.com/asset/2023/09/25/processed_8aaf34c2-d793-4e83-8a2a-45999842128a+snd1+copy.webp&quot;/&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-2 bqxINo&quot;&gt;&lt;div class=&quot;sc-1crxk01-0 imebcy sc-dfsrp1-3 dhKlZZ&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hTvPqe&quot; font-size=&quot;12&quot;&gt;[TRADE IN] Voucher Aki mobil GS ASTRA Hybrid NS40Z + Pasang untuk Avanza, Xenia, APV, Taruna, Esteem, Splash, dll (aki standar)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 eXVUhJ&quot; height=&quot;10&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;span class=&quot;sc-c03xih-0 iUOMlE&quot; height=&quot;0.8rem&quot;&gt;13%&lt;/span&gt;&lt;div class=&quot;sc-183so67-0 jpLYCI&quot; width=&quot;4&quot;&gt;&lt;/div&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-5 IjQLK&quot;&gt;Rp789.000&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 buJOIN&quot;&gt;&lt;span class=&quot;sc-w647qe-0 hKzQxA&quot; font-size=&quot;14&quot; font-weight=&quot;bold&quot;&gt;Rp685.000&lt;/span&gt;&lt;div class=&quot;sc-1crxk01-0 kSxkkB&quot;&gt;&lt;span class=&quot;sc-rq82e3-0 ijZWUs&quot; height=&quot;12&quot;&gt;&lt;svg fill=&quot;none&quot; height=&quot;12&quot; viewbox=&quot;0 0 12 12&quot; width=&quot;12&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+&lt;path d=&quot;M5.23196 0.557491C5.47408 -0.18583 6.52571 -0.18583 6.76703 0.557491L7.63061 3.2144C7.68337 3.37621 7.78593 3.5172 7.92363 3.61722C8.06134 3.71724 8.22714 3.77116 8.39733 3.77129H11.1914C11.9735 3.77129 12.298 4.77207 11.666 5.23211L9.40618 6.87371C9.2682 6.97381 9.16545 7.11504 9.11268 7.27713C9.0599 7.43923 9.05981 7.61387 9.11241 7.77603L9.97598 10.4329C10.2181 11.1763 9.36664 11.7953 8.73308 11.3353L6.47325 9.69365C6.33541 9.59358 6.16943 9.53968 5.99909 9.53968C5.82875 9.53968 5.66277 9.59358 5.52493 9.69365L3.2651 11.3353C2.63235 11.7953 1.78169 11.1763 2.023 10.4329L2.88658 7.77603C2.93918 7.61387 2.93909 7.43923 2.88631 7.27713C2.83354 7.11504 2.73079 6.97381 2.5928 6.87371L0.333783 5.23291C-0.298162 4.77288 0.0270921 3.7721 0.808347 3.7721H3.60166C3.77199 3.77214 3.93797 3.71829 4.07583 3.61827C4.2137 3.51824 4.31639 3.37715 4.36919 3.21521L5.23277 0.558298L5.23196 0.557491Z&quot; fill=&quot;#FEDB00&quot;&gt;&lt;/path&gt;
+&lt;/svg&gt;
+&lt;/span&gt;&lt;span class=&quot;sc-w647qe-0 zCVmv&quot; font-size=&quot;8&quot; font-weight=&quot;bold&quot;&gt;5&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 hmMsSC&quot;&gt;&lt;label class=&quot;sc-5o48du-0 izdTRu sc-dfsrp1-6 bQasgR&quot; height=&quot;0&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div class=&quot;sc-183so67-0 gliedD&quot; height=&quot;5&quot;&gt;&lt;/div&gt;&lt;div class=&quot;sc-1crxk01-0 gUViAW&quot;&gt;&lt;span class=&quot;sc-w647qe-0 iyKvQr&quot; font-size=&quot;8&quot;&gt;Stok tersedia&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;
+teks:  Voucher Astra Shell Oil 5W30 4 Ltr + Pemasangan (Oli untuk Mobil Bensin)50%Rp832.000Rp416.000
+
+
+5Stok tersedia
+page_pilihlokasi:  &lt;selenium.webdriver.remote.webelement.WebElement (session=&quot;2fad38a45c057674225c36b67405426f&quot;, element=&quot;C2B2F392EFC84B4EE778A0A974A1E117_element_110&quot;)&gt;
+page_pilihlokasi2:  True
+notif_sukses_pilihlokasi:  Lokasi yang anda pilih telah tersimpan. Klik kembali/back untuk melanjutkan.
+current_url:  https://astraotoshop.com/product/voucher-astra-shell-oil-5w30-4-ltr-pemasangan-oli-untuk-mobil-bensin-22
+RUNNING AFTER EACH TEST
+<br/></div></td></tr></tbody></table></body></html>
