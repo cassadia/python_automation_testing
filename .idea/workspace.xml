@@ -5,13 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a506fff1-f0b4-46f7-8abe-c591241ea59b" name="Changes" comment="structure python seleniumbase">
-      <change afterPath="$PROJECT_DIR$/page_objects/product_page.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test/test_product_old.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/test_combine.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/test_suite.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/latest_logs/test.test_product.ProductTest.test_get_url_values/basic_test_info.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/latest_logs/test.test_product.ProductTest.test_get_url_values/page_source.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/latest_logs/test.test_product.ProductTest.test_get_url_values/screenshot.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/test_product.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/test_product.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/home_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/page_objects/home_page.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/test_home.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/test_home.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,19 +56,29 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python tests.Python tests for test_combine.BaseTest.executor": "Run",
+    "Python tests.Python tests for test_combine.HomeTest.executor": "Run",
+    "Python tests.Python tests for test_combine.HomeTest.test_login.executor": "Run",
+    "Python tests.Python tests for test_combine.HomeTest.test_tis.executor": "Run",
+    "Python tests.Python tests for test_home.HomeTest.executor": "Run",
+    "Python tests.Python tests for test_home.HomeTest.test_login.executor": "Run",
     "Python tests.Python tests for test_perform.ProductTest.executor": "Run",
     "Python tests.Python tests for test_perform.ProductTest.test_product.executor": "Run",
     "Python tests.Python tests for test_perform.ProductTest.test_product_voucher_pemasangan.executor": "Run",
     "Python tests.Python tests for test_product.ProductTest.test_get_url_values.executor": "Run",
     "Python tests.Python tests for test_product.ProductTest.test_product.executor": "Run",
     "Python tests.Python tests for test_product.ProductTest.test_product_voucher_pemasangan.executor": "Run",
+    "Python tests.Python tests for test_suite.TestSuite.executor": "Run",
+    "Python tests.Python tests for test_suite.TestSuite.test_full_suite.executor": "Run",
+    "Python tests.Python tests in test_suite.py.executor": "Run",
+    "Python.main.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "develop",
     "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
   }
 }]]></component>
-  <component name="RunManager" selected="Python tests.Python tests for test_product.ProductTest.test_product">
+  <component name="RunManager" selected="Python tests.Python tests for test_combine.HomeTest">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="pythonProject" />
       <option name="ENV_FILES" value="" />
@@ -93,7 +101,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="Python tests for test_product.ProductTest.test_product" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+    <configuration name="Python tests for test_combine.BaseTest" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="pythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -104,11 +112,11 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;test_product.ProductTest.test_product&quot;" />
+      <option name="_new_target" value="&quot;test_combine.BaseTest&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="Python tests for test.test_product.ProductTest" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+    <configuration name="Python tests for test_combine.HomeTest" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="pythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -119,11 +127,11 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;test.test_product.ProductTest&quot;" />
+      <option name="_new_target" value="&quot;test_combine.HomeTest&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="Python tests for test.test_product.ProductTest.test_product" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+    <configuration name="Python tests for test_combine.HomeTest.test_login" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="pythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -134,11 +142,11 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;test.test_product.ProductTest.test_product&quot;" />
+      <option name="_new_target" value="&quot;test_combine.HomeTest.test_login&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="Python tests for test.test_product.ProductTest.test_product_voucher_pemasangan" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+    <configuration name="Python tests for test_combine.HomeTest.test_tis" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="pythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -149,11 +157,11 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;test.test_product.ProductTest.test_product_voucher_pemasangan&quot;" />
+      <option name="_new_target" value="&quot;test_combine.HomeTest.test_tis&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="Python tests for test.test_product_old" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+    <configuration name="Python tests for test_home.HomeTest.test_login" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="pythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -164,7 +172,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;test.test_product_old&quot;" />
+      <option name="_new_target" value="&quot;test_home.HomeTest.test_login&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
@@ -185,11 +193,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python tests.Python tests for test_product.ProductTest.test_product" />
-        <item itemvalue="Python tests.Python tests for test.test_product.ProductTest.test_product_voucher_pemasangan" />
-        <item itemvalue="Python tests.Python tests for test.test_product.ProductTest.test_product" />
-        <item itemvalue="Python tests.Python tests for test.test_product.ProductTest" />
-        <item itemvalue="Python tests.Python tests for test.test_product_old" />
+        <item itemvalue="Python tests.Python tests for test_combine.HomeTest" />
+        <item itemvalue="Python tests.Python tests for test_combine.BaseTest" />
+        <item itemvalue="Python tests.Python tests for test_combine.HomeTest.test_login" />
+        <item itemvalue="Python tests.Python tests for test_combine.HomeTest.test_tis" />
+        <item itemvalue="Python tests.Python tests for test_home.HomeTest.test_login" />
       </list>
     </recent_temporary>
   </component>

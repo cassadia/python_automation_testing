@@ -32,3 +32,4 @@ class HomePage(BaseCase):
 
     def open_page(self):
         self.open("https://astraotoshop.com")
+

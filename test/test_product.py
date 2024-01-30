@@ -1,12 +1,15 @@
 import requests
-from helper.encryption import encrypt, decrypt
-from page_objects.product_page import ProductPage
+from pythonProject.helper.encryption import encrypt, decrypt
+from pythonProject.page_objects.product_page import ProductPage
 from bs4 import BeautifulSoup
+from pythonProject.page_objects.home_page import HomePage
+from pythonProject.test.test_home import HomeTest
 
 class ProductTest(ProductPage):
     def setUp(self):
         super().setUp()
         print("RUNNING BEFORE EACH TEST")
+        self.session = requests.Session()
         self.open_page()
 
     def tearDown(self):
@@ -14,18 +17,31 @@ class ProductTest(ProductPage):
         super().tearDown()
 
     def test_product(self):
+        home_test = HomeTest()
+        home_test.setUp()
+        home_test.test_login()
+        self.session.cookies = home_test.driver.get_cookies()
+        home_test.tearDown()
+
+        print('cookies: ', self.session.cookies)
+
         self.perform_product_test("Produk (Gratis Ongkir + Kupon Diskon + Cashback)", 9)
 
-    def test_product_voucher_pemasangan(self):
-        self.perform_product_test("Voucher Pemasangan + Cashback + Garansi (Aki) Shop & Drive", 12)
-
-    def test_product_voucher_aose(self):
-        self.perform_product_test("Voucher Astra Otoservice (Pemasangan + Cashback)", 15)
-
-    def test_product_voucher_motoquick(self):
-        self.perform_product_test("Voucher Motoquick (Pemasangan + Cashback)", 18)
+    # def test_product_voucher_pemasangan(self):
+    #     self.perform_product_test("Voucher Pemasangan + Cashback + Garansi (Aki) Shop & Drive", 12)
+    #
+    # def test_product_voucher_aose(self):
+    #     self.perform_product_test("Voucher Astra Otoservice (Pemasangan + Cashback)", 15)
+    #
+    # def test_product_voucher_motoquick(self):
+    #     self.perform_product_test("Voucher Motoquick (Pemasangan + Cashback)", 18)
 
     def perform_product_test(self, expected_label, div_index):
+        for cookie in self.session.cookies:
+            self.driver.add_cookie(cookie)
+
+        print('cookies_get: ', self.driver.get_cookies())
+
         self.sleep(3)
 
         label_produk = self.find_element(
@@ -83,6 +99,10 @@ class ProductTest(ProductPage):
                             # print('test: ', test.text)
                             notif_text = self.notif_success_addtocart
                             notif_element = self.notif_elem_succ_addtocart
+
+                            self.open("https://astraotoshop.com")
+
+                            self.sleep(3)
                         else:
                             notif_text = "Pilih Lokasi"
                             notif_element = self.notif_elem_succ_getlocation
@@ -114,4 +134,4 @@ class ProductTest(ProductPage):
                                 notif_sukses = self.assert_exact_text(self.notif_success_addtocart, "span > span.sc-w647qe-0.WGnpq")
                                 print('notif: ', notif_sukses)
 
-                                self.sleep(3)
+                                self.sleep(1)
