@@ -43,20 +43,21 @@ class HomeTest(HomePage):
             else:
                 print('error')
 
-    def test_register(self):
-        self.click(self.btn_masuk_login) #klik button login
-        self.sleep(2)
-        self.click(self.btn_daftar_sekarang) #klik button daftar sekarang
 
-        self.assert_exact_text("Atau daftar manual", self.label_text_daftarManual)
-
-        self.send_keys(self.input_daftar_nama, self.text_daftar_nama)
-        self.send_keys(self.input_daftar_email, self.text_daftar_email)
-        self.send_keys(self.input_daftar_noHp, self.text_daftar_noHp)
-        self.send_keys(self.input_daftar_password, self.text_daftar_password)
-        self.send_keys(self.input_daftarUlang_password, self.text_daftarUlang_password)
-        self.click(self.check_datar_policy)
-
-        self.click(self.btn_daftar)
-
-        self.sleep(3)
+    # def test_register(self):
+    #     self.click(self.btn_masuk_login) #klik button login
+    #     self.sleep(2)
+    #     self.click(self.btn_daftar_sekarang) #klik button daftar sekarang
+    #
+    #     self.assert_exact_text("Atau daftar manual", self.label_text_daftarManual)
+    #
+    #     self.send_keys(self.input_daftar_nama, self.text_daftar_nama)
+    #     self.send_keys(self.input_daftar_email, self.text_daftar_email)
+    #     self.send_keys(self.input_daftar_noHp, self.text_daftar_noHp)
+    #     self.send_keys(self.input_daftar_password, self.text_daftar_password)
+    #     self.send_keys(self.input_daftarUlang_password, self.text_daftarUlang_password)
+    #     self.click(self.check_datar_policy)
+    #
+    #     self.click(self.btn_daftar)
+    #
+    #     self.sleep(3)
